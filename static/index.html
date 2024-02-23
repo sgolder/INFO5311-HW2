@@ -1,0 +1,241 @@
+<html><head>
+  <!--- D3 Import --->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    .gridlines line {
+    stroke: #bbb;
+    }
+    h2 {
+      text-align: center;
+      font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    }
+    .text {
+      font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    }
+    .button {
+      cursor: pointer;
+      background-color: #e6d7ff;
+      padding-top: 10pt;
+      padding-bottom: 10pt;
+      padding-left: 20pt;
+      padding-right: 20pt;
+      margin-right: 20pt;
+      margin-top: 5pt;
+      margin-bottom: 10pt;
+      border-radius: 24px;
+      border: none;
+      align-content: center;
+      font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    }
+    .button:hover {
+      
+      background: #F6F9FE;
+      color: purple;
+    }
+    .button:focus {
+      background: #f5eefa;
+      color: purple;
+    }
+  
+
+  </style>
+</head>
+<body>
+  <h2>Employee Metrics by Department</h2>
+   
+  <script>
+    //WorkSatisfaction Ratings Data
+    const sat_hr = [{"rating": 1, "percentage": 0.1746032}, {"rating": 2, "percentage": 0.3174603}, 
+                    {"rating": 3, "percentage": 0.2380952}, {"rating": 4, "percentage": 0.2698413}]
+    const sat_rd = [{"rating": 1, "percentage": 0.1997919}, {"rating": 2, "percentage": 0.1810614}, 
+                    {"rating": 3, "percentage": 0.3121748}, {"rating": 4, "percentage": 0.3069719}]
+    const sat_sales = [{"rating": 1, "percentage": 0.1928251}, {"rating": 2, "percentage": 0.1928251}, 
+                      {"rating": 3, "percentage": 0.2847534}, {"rating": 4, "percentage": 0.3295964}]
+    //WorkLifeBalance Ratings Data
+    const wlb_hr = [{"rating": 1, "percentage": 0.06349206}, {"rating": 2, "percentage": 0.11111111}, 
+                    {"rating": 3, "percentage": 0.66666667}, {"rating": 4, "percentage": 0.15873016}]
+    const wlb_rd = [{"rating": 1, "percentage": 0.06243496}, {"rating": 2, "percentage": 0.24453694}, 
+                    {"rating": 3, "percentage": 0.59833507}, {"rating": 4, "percentage": 0.09469303}]
+    const wlb_sales = [{"rating": 1, "percentage": 0.03587444}, {"rating": 2, "percentage": 0.22869955}, 
+                      {"rating": 3, "percentage": 0.61883408}, {"rating": 4, "percentage": 0.11659193}]
+    //RelationshipSatisfaction Ratings Data
+    const relsat_hr = [{"rating": 1, "percentage": 0.1269841}, {"rating": 2, "percentage": 0.1746032}, 
+                      {"rating": 3, "percentage": 0.3809524}, {"rating": 4, "percentage": 0.3174603}]
+    const relsat_rd = [{"rating": 1, "percentage": 0.1800208}, {"rating": 2, "percentage": 0.2206035}, 
+                      {"rating": 3, "percentage": 0.3100937}, {"rating": 4, "percentage": 0.2892820}]
+    const relsat_sales = [{"rating": 1, "percentage": 0.2130045}, {"rating": 2, "percentage": 0.1793722}, 
+                      {"rating": 3, "percentage": 0.3071749}, {"rating": 4, "percentage": 0.3004484}]
+
+    const requestData = async() => {
+      let employees = await d3.csv("employee_attrition_and_engagement.csv");
+      console.log(employees)
+
+      // Add buttons
+      const wlb_button = d3.select("body")
+                      .append("button").attr("class", "button")
+                      .attr("id", "wlb")
+                      .attr("width", 100)
+                      .attr("height", 20)
+                      .text("Work-Life Balance")
+
+      const sat_button = d3.select("body")
+                      .append("button").attr("class", "button")
+                      .attr("id", "sat")
+                      .attr("width", 100)
+                      .attr("height", 20)
+                      .text("Work Satisfaction")
+      
+      const relsat_button = d3.select("body")
+                      .append("button").attr("class", "button")
+                      .attr("id", "sat")
+                      .attr("width", 100)
+                      .attr("height", 20)
+                      .text("Relationship Satisfaction")
+      d3.select("body").append("br")
+
+      //Create SVG
+      const body = d3.select("body")
+                      .append("svg")
+                      .attr("id","plot")
+                      .attr("width", 950)
+                      .attr("height", 500)
+                      .style("background", "#F5F5F5")
+
+      const svg = d3.select("#plot")
+
+      //Add Titles
+      let hrTitle = svg.append("text")
+                      .text("Human Resources")
+                      .attr("x", 100)
+                      .attr("y", 50)
+                      .style("font-family", 'Trebuchet MS')
+                      .style("font-size", 20)
+      let rdTitle = svg.append("text")
+                      .text("Research & Development")
+                      .attr("x", 355)
+                      .attr("y", 50)
+                      .style("font-family", 'Trebuchet MS')
+                      .style("font-size", 20)
+      let salesTitle = svg.append("text")
+                      .text("Sales")
+                      .attr("x", 740)
+                      .attr("y", 50)
+                      .style("font-family", 'Trebuchet MS')
+                      .style("font-size", 20)
+
+      //Dimensions / Margins / Padding
+      const width = svg.attr("width")
+      const height = svg.attr("height")
+      
+      const cellWidth = 300;
+      const cellHeight = 450;
+      const margin = {top: 75, bottom: 20, left:50, right: 5}
+      const chartWidth = cellWidth - margin.right - margin.left
+      const chartHeight = cellHeight - margin.top - margin.bottom
+
+      // Make cells for each department
+      let hrCell = svg.append("g")
+                      .attr("class", "cell")
+                      .attr("transform", `translate(${0},${0})`)
+      let hrAnnotations = hrCell.append("g").attr("class","annotations");
+      let hrChartArea = hrCell.append("g")
+                      .attr("transform", `translate(${margin.left},${margin.top})`)
+
+      let rdCell = svg.append("g")
+                      .attr("class", "cell")
+                      .attr("transform", `translate(${0},${0})`)
+      let rdAnnotations = rdCell.append("g").attr("class","annotations");
+      let rdChartArea = rdCell.append("g")
+                      .attr("transform", `translate(${margin.left+chartWidth +50},${margin.top})`)
+                      
+      let salesCell = svg.append("g")
+                      .attr("class", "cell")
+                      .attr("transform", `translate(${0},${0})`)
+      let salesAnnotations = salesCell.append("g").attr("class","annotations");
+      let salesChartArea = salesCell.append("g")
+                      .attr("transform", `translate(${margin.left+chartWidth*2 + 100},${margin.top})`)
+
+      // Axis labels and gridlines for each department
+      const percentScale = d3.scaleLinear().domain([0, 0.7]).range([chartHeight, 0]);
+       
+      const leftAxis = d3.axisLeft(percentScale).tickFormat(d3.format(".0%"))
+      const leftGridlines = d3.axisLeft(percentScale).tickSize(-chartWidth).tickFormat("")
+        
+      hrAnnotations.append("g").attr("class", "y axis")
+                    .attr("transform",`translate(${margin.left},${margin.top})`)
+                    .call(leftAxis)
+      hrAnnotations.append("g").attr("class", "y gridlines")
+                    .attr("transform",`translate(${margin.left},${margin.top})`)
+                    .call(leftGridlines)
+      rdAnnotations.append("g").attr("class", "y axis")
+                    .attr("transform",`translate(${margin.left+chartWidth +50},${margin.top})`)
+                    .call(leftAxis)
+      rdAnnotations.append("g").attr("class", "y gridlines")
+                    .attr("transform",`translate(${margin.left+chartWidth +50},${margin.top})`)
+                    .call(leftGridlines)
+      salesAnnotations.append("g").attr("class", "y axis")
+                    .attr("transform",`translate(${margin.left+chartWidth*2 + 100},${margin.top})`)
+                    .call(leftAxis)
+      salesAnnotations.append("g").attr("class", "y gridlines")
+                    .attr("transform",`translate(${margin.left+chartWidth*2 + 100},${margin.top})`)
+                    .call(leftGridlines)
+
+      const ratings = d3.map(sat_hr, d => d.rating)
+      const ratingScale = d3.scaleBand().domain(ratings).range([0, chartWidth]).padding(0.05)
+
+      let bottomAxis = d3.axisBottom(ratingScale)
+      hrAnnotations.append("g").attr("class", "x axis")
+                  .attr("transform",`translate(${margin.left},${chartHeight+margin.top})`)
+                  .call(bottomAxis)
+      rdAnnotations.append("g").attr("class", "x axis")
+                  .attr("transform",`translate(${margin.left+chartWidth +50},${chartHeight+margin.top})`)
+                  .call(bottomAxis)
+      salesAnnotations.append("g").attr("class", "x axis")
+                  .attr("transform",`translate(${margin.left+chartWidth*2 + 100},${chartHeight+margin.top})`)
+                  .call(bottomAxis)
+
+
+      //Make cells
+      function updateBarsAnimated(dat, color, annotations, chartArea) {
+        let bars = chartArea.selectAll("rect.bar").data(dat)
+                            .join(enter => enter.append ("rect")
+                                                .attr("class", "bar hr")
+                                                .attr("x", d => ratingScale(d.rating))
+                                                .attr("y", d => percentScale(d.percentage))
+                                                .attr("height",  d => percentScale(0)- percentScale(d.percentage))
+                                                .attr("width", ratingScale.bandwidth())
+                                                .style("fill", color),
+                                  update => update.call( update => update.transition()
+                                                                        .attr("x", d => ratingScale(d.rating))
+                                                                        .attr("y", d => percentScale(d.percentage))
+                                                                        .attr("height",  d => percentScale(0)- percentScale(d.percentage))
+                                                                        .attr("width", ratingScale.bandwidth()),
+                                  exit => exit.call( exit => exit.remove()))
+                            )
+      }
+      //console.log(hr)
+      
+      function updateCells(hr, rd, sales) {
+        updateBarsAnimated(hr, "lightgreen", hrAnnotations, hrChartArea)
+        updateBarsAnimated(rd, "#e6d7ff", rdAnnotations, rdChartArea)
+        updateBarsAnimated(sales, "lightblue", salesAnnotations, salesChartArea)
+      }
+
+
+      wlb_button.on("click", function() {
+        
+        updateCells(wlb_hr, wlb_rd, wlb_sales)
+      })
+      sat_button.on("click", function() {
+        updateCells(sat_hr, sat_rd, sat_sales)
+      })
+      relsat_button.on("click", function() {
+        updateCells(relsat_hr, relsat_rd, relsat_sales)
+      })
+
+      updateCells(wlb_hr, wlb_rd, wlb_sales)
+      }
+      requestData();
+  
+  </script>
+</body></html>
